@@ -55,8 +55,9 @@ type On []struct {
 
 // Config defines the Machine's configuration
 type Config struct {
-	Initial State
-	States  States
+	Initial      State
+	StateChanged func(prev State, next State)
+	States       States
 }
 
 type key struct {
@@ -78,6 +79,7 @@ type Machine struct {
 	states        map[State]*stateInfo
 	nextStates    map[key]*stateEventInfo
 	cancelTimeout func()
+	stateChanged  func(prev State, next State)
 }
 
 // Send sends an event to machine, if nothing changes, ErrNoop will be return
@@ -116,7 +118,7 @@ func (m *Machine) process(state State) error {
 
 	if stateInfo.Timeout == nil {
 		// No timeout set, simply assing target to current
-		m.currentState = state
+		m.changeState(state)
 		return nil
 	}
 
@@ -126,14 +128,20 @@ func (m *Machine) process(state State) error {
 			if state.Cond != nil && !state.Cond() {
 				continue
 			}
-
-			m.currentState = state.Target
+			m.changeState(state.Target)
 			m.process(m.currentState)
 			break
 		}
 	}, stateInfo.Timeout.Duration)
 
 	return nil
+}
+
+func (m *Machine) changeState(next State) {
+	if m.stateChanged != nil && m.currentState != next {
+		m.stateChanged(m.currentState, next)
+	}
+	m.currentState = next
 }
 
 // State returns the current state of machine
@@ -168,6 +176,7 @@ func NewMachine(conf Config) (*Machine, error) {
 	}
 
 	m := &Machine{
+		stateChanged: conf.StateChanged,
 		currentState: conf.Initial,
 		nextStates:   nextStates,
 		states:       states,

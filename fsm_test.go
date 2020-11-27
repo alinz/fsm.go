@@ -1,6 +1,8 @@
 package fsm_test
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,8 +21,22 @@ func TestSimpleToggleMachine(t *testing.T) {
 		off
 	)
 
+	state2String := func(state fsm.State) string {
+		switch state {
+		case on:
+			return "on"
+		case off:
+			return "off"
+		default:
+			return "unknown state"
+		}
+	}
+
 	m, err := fsm.NewMachine(fsm.Config{
 		Initial: off,
+		StateChanged: func(prev fsm.State, next fsm.State) {
+			fmt.Printf("%s -> %s\n", state2String(prev), state2String(next))
+		},
 		States: fsm.States{
 			{
 				Ref: on,
@@ -122,8 +138,18 @@ func TestTrafficLightMachine(t *testing.T) {
 		}
 	}
 
+	var wg sync.WaitGroup
+
+	wg.Add(5)
+
+	result := make([]string, 0)
+
 	m, err := fsm.NewMachine(fsm.Config{
 		Initial: red,
+		StateChanged: func(prev fsm.State, next fsm.State) {
+			result = append(result, fmt.Sprintf("%s->%s", state2String(prev), state2String((next))))
+			wg.Done()
+		},
 		States: fsm.States{
 			{
 				Ref: red,
@@ -199,33 +225,19 @@ func TestTrafficLightMachine(t *testing.T) {
 		t.Errorf("initial state is not correctly set")
 	}
 
-	testCases := []struct {
-		description   string
-		wait          time.Duration
-		expectedState fsm.State
-	}{
-		{
-			description:   "change from red to green",
-			wait:          750 * time.Millisecond,
-			expectedState: green,
-		},
-		{
-			description:   "change from green to yellow",
-			wait:          750 * time.Millisecond,
-			expectedState: yellow,
-		},
-		{
-			description:   "change from yellow to red",
-			wait:          750 * time.Millisecond,
-			expectedState: green,
-		},
+	wg.Wait()
+
+	expected := []string{
+		"red->green",
+		"green->yellow",
+		"yellow->red",
+		"red->green",
+		"green->yellow",
 	}
 
-	for _, testCase := range testCases {
-		time.Sleep(testCase.wait)
-
-		if m.State() != testCase.expectedState {
-			t.Errorf("in %s, expected %s but got %s", testCase.description, state2String(testCase.expectedState), state2String(m.State()))
+	for i, value := range expected {
+		if result[i] != value {
+			t.Errorf("expected %s, but got %s at %d iteration", value, result[i], i)
 		}
 	}
 
