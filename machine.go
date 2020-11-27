@@ -74,6 +74,7 @@ type stateEventInfo struct {
 	Targets Targets
 }
 
+// Machine is a main type which created using NewMachine and configured
 type Machine struct {
 	currentState  State
 	states        map[State]*stateInfo
