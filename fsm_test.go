@@ -242,3 +242,111 @@ func TestTrafficLightMachine(t *testing.T) {
 	}
 
 }
+
+// For the actual represtation of this state machine
+// please see this URL
+// https://excalidraw.com/#json=6233155535110144,NJZ-TsUF-K-rL8OLkCiCFA
+func TestExampleDoor(t *testing.T) {
+	const (
+		_ fsm.State = iota
+		Unlocked
+		Closed
+		Opened
+		Locked
+	)
+
+	const (
+		EvtOpen   = fsm.Event("open")
+		EvtClose  = fsm.Event("close")
+		EvtLock   = fsm.Event("lock")
+		EvtUnlock = fsm.Event("unlock")
+	)
+
+	door, err := fsm.NewMachine(fsm.Config{
+		Initial: Closed,
+		States: fsm.States{
+			{
+				Ref: Closed,
+				Timeout: &fsm.Timeout{
+					Duration: 10 * time.Second,
+					Targets: fsm.Targets{
+						{
+							Target: Locked,
+						},
+					},
+				},
+				On: fsm.On{
+					{
+						Event: EvtLock,
+						Targets: fsm.Targets{
+							{
+								Target: Locked,
+							},
+						},
+					},
+					{
+						Event: EvtOpen,
+						Targets: fsm.Targets{
+							{
+								Target: Opened,
+							},
+						},
+					},
+				},
+			},
+			{
+				Ref: Locked,
+				On: fsm.On{
+					{
+						Event: EvtUnlock,
+						Targets: fsm.Targets{
+							{
+								Target: Unlocked,
+							},
+						},
+					},
+				},
+			},
+			{
+				Ref: Unlocked,
+				On: fsm.On{
+					{
+						Event: EvtOpen,
+						Targets: fsm.Targets{
+							{
+								Target: Opened,
+							},
+						},
+					},
+					{
+						Event: EvtLock,
+						Targets: fsm.Targets{
+							{
+								Target: Locked,
+							},
+						},
+					},
+				},
+			},
+			{
+				Ref: Opened,
+				On: fsm.On{
+					{
+						Event: EvtClose,
+						Targets: fsm.Targets{
+							{
+								Target: Closed,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Errorf("failed to create door fsm: %s", err)
+	}
+
+	_ = door
+}
