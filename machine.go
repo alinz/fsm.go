@@ -117,7 +117,7 @@ func (m *Machine) process(state State) error {
 		return ErrStateNotFound
 	}
 
-	m.changeState(state)
+	m.changeState(state, false)
 
 	if stateInfo.Timeout == nil {
 		// No timeout set, simply assing target to current
@@ -130,7 +130,10 @@ func (m *Machine) process(state State) error {
 			if state.Cond != nil && !state.Cond() {
 				continue
 			}
-			m.changeState(state.Target)
+			// because timeout happens,
+			// we need to notify target even though
+			// state is the same
+			m.changeState(state.Target, true)
 			m.process(m.currentState)
 			break
 		}
@@ -139,8 +142,8 @@ func (m *Machine) process(state State) error {
 	return nil
 }
 
-func (m *Machine) changeState(next State) {
-	if m.stateChanged != nil && m.currentState != next {
+func (m *Machine) changeState(next State, byForce bool) {
+	if m.stateChanged != nil && (byForce || m.currentState != next) {
 		m.stateChanged(m.currentState, next)
 	}
 	m.currentState = next
