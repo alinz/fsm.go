@@ -22,32 +22,32 @@ let's create a file call `button.go` under `button` folder
 package button
 
 import (
-    "github.com/alinz/fsm.go"
+	"github.com/alinz/fsm.go"
 )
 
 const (
-    EvtToggle = fsm.Event("toggle") // define a toggle event
+	EvtToggle = fsm.Event("toggle") // define a toggle event
 )
 
 const (
-    _ fsm.State = iota // we always ignore the first one as State can't be zero
-    On  // store 1
-    Off // store 2
+	_ fsm.State = iota // we always ignore the first one as State can't be zero
+	On  // store 1
+	Off // store 2
 )
 
 func NewFSM() (*fsm.Machine, error) {
 	m, err := fsm.NewMachine(fsm.Config{
-        // define the initial state of machine, which in this case it would be Off
+		// define the initial state of machine, which in this case it would be Off
 		Initial: off,
 		States: fsm.States{
-            // define the first state which is On
+			// define the first state which is On
 			{
-                Ref: On,
-                // define list of all events and their corresponding states
+				Ref: On,
+				// define list of all events and their corresponding states
 				On: fsm.On{
 					{
-                        // once this machine receives EvtToggle, it
-                        // switch to Off state
+						// once this machine receives EvtToggle, it
+						// switch to Off state
 						Event: EvtToggle,
 						Targets: fsm.Targets{
 							{
@@ -56,14 +56,14 @@ func NewFSM() (*fsm.Machine, error) {
 						},
 					},
 				},
-            },
-            // define the first state which is Off
+			},
+			// define the first state which is Off
 			{
 				Ref: Off,
 				On: fsm.On{
 					{
-                        // once this machine receives EvtToggle, it
-                        // switch to On state
+						// once this machine receives EvtToggle, it
+						// switch to On state
 						Event: EvtToggle,
 						Targets: fsm.Targets{
 							{
@@ -74,9 +74,9 @@ func NewFSM() (*fsm.Machine, error) {
 				},
 			},
 		},
-    })
+	})
 
-    return m, err
+	return m, err
 }
 ```
 
@@ -86,28 +86,28 @@ now in your main file,
 package main
 
 import (
-    "github.com/alinz/fsm.go"
+	"github.com/alinz/fsm.go"
 
-    "example.com/internal/button"
+	"example.com/internal/button"
 )
 
 func main() {
-    machine, err := button.NewFSM()
-    if err != nil {
-        panic(err)
-    }
+	machine, err := button.NewFSM()
+	if err != nil {
+		panic(err)
+	}
 
-    fmt.Println(machine.State()) // should print out initial state which is Off
+	fmt.Println(machine.State()) // should print out initial state which is Off
 
-    // let's send an event
-    err = machine.Send(button.EvtToggle)
-    // Send function might return `fms.ErrNoop` if the given event doesn't change the state
-    // of the system
-    if err != nil && err != fsm.ErrNoop {
-        panic(err)
-    }
+	// let's send an event
+	err = machine.Send(button.EvtToggle)
+	// Send function might return `fms.ErrNoop` if the given event doesn't change the state
+	// of the system
+	if err != nil && err != fsm.ErrNoop {
+		panic(err)
+	}
 
-    fmt.Println(machine.State()) // should print out On state
+	fmt.Println(machine.State()) // should print out On state
 }
 
 ```
