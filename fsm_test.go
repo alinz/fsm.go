@@ -69,10 +69,12 @@ func TestSimpleToggleMachine(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("failed to initialized machine: %s", err)
+		return
 	}
 
 	if m.State() != off {
 		t.Errorf("initial state is not correctly set")
+		return
 	}
 
 	testCases := []struct {
@@ -140,13 +142,19 @@ func TestTrafficLightMachine(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	wg.Add(5)
+	n := 5
+
+	wg.Add(n)
 
 	result := make([]string, 0)
 
 	m, err := fsm.NewMachine(fsm.Config{
 		Initial: red,
 		StateChanged: func(prev fsm.State, next fsm.State) {
+			if n == 0 {
+				return
+			}
+			n--
 			result = append(result, fmt.Sprintf("%s->%s", state2String(prev), state2String((next))))
 			wg.Done()
 		},
@@ -219,10 +227,12 @@ func TestTrafficLightMachine(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("failed to initialized machine: %s", err)
+		return
 	}
 
 	if m.State() != red {
 		t.Errorf("initial state is not correctly set")
+		return
 	}
 
 	wg.Wait()
@@ -238,6 +248,7 @@ func TestTrafficLightMachine(t *testing.T) {
 	for i, value := range expected {
 		if result[i] != value {
 			t.Errorf("expected %s, but got %s at %d iteration", value, result[i], i)
+			return
 		}
 	}
 
