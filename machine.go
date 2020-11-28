@@ -117,9 +117,10 @@ func (m *Machine) process(state State) error {
 		return ErrStateNotFound
 	}
 
+	m.changeState(state)
+
 	if stateInfo.Timeout == nil {
 		// No timeout set, simply assing target to current
-		m.changeState(state)
 		return nil
 	}
 

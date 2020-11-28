@@ -268,7 +268,7 @@ func TestExampleDoor(t *testing.T) {
 			{
 				Ref: Closed,
 				Timeout: &fsm.Timeout{
-					Duration: 10 * time.Second,
+					Duration: 3 * time.Second,
 					Targets: fsm.Targets{
 						{
 							Target: Locked,
@@ -348,5 +348,61 @@ func TestExampleDoor(t *testing.T) {
 		t.Errorf("failed to create door fsm: %s", err)
 	}
 
-	_ = door
+	testCases := []struct {
+		description string
+		event       fsm.Event
+		state       fsm.State
+		wait        time.Duration
+	}{
+		{
+			description: "try to open the closed door",
+			event:       EvtOpen,
+			state:       Opened,
+		},
+		{
+			description: "try to close the opened door",
+			event:       EvtClose,
+			state:       Closed,
+		},
+		{
+			description: "will wait 5 seconds, to see if the door automatically lock itself",
+			event:       EvtOpen,
+			state:       Locked,
+			wait:        5 * time.Second,
+		},
+		{
+			description: "try to unlock the locked door",
+			event:       EvtUnlock,
+			state:       Unlocked,
+		},
+		{
+			description: "try to open the unlocked door",
+			event:       EvtOpen,
+			state:       Opened,
+		},
+		{
+			description: "try to close the opened door",
+			event:       EvtClose,
+			state:       Closed,
+		},
+		{
+			description: "will wait 5 seconds, to see if the door automatically lock itself",
+			event:       EvtOpen,
+			state:       Locked,
+			wait:        5 * time.Second,
+		},
+	}
+
+	for _, testCase := range testCases {
+		if testCase.wait != 0 {
+			time.Sleep(testCase.wait)
+		}
+
+		door.Send(testCase.event)
+
+		if door.State() != testCase.state {
+			t.Errorf("%s", testCase.description)
+			return
+		}
+	}
 }
